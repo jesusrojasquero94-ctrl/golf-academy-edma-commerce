@@ -399,6 +399,61 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
   .tracer-path{stroke-dashoffset:0}
   .tracer-bola{opacity:1}
 }
+
+/* ══════════ WALKTHROUGH DE BIENVENIDA (tour paso a paso) ══════════ */
+.qc-tour-fab{
+  position:fixed; left:18px; bottom:18px; z-index:9998;
+  width:46px;height:46px;border-radius:50%;
+  background:var(--qiu); color:var(--hueso);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--f-display); font-size:20px; font-weight:700;
+  cursor:pointer; box-shadow:0 6px 18px rgba(0,0,0,.35);
+  border:2px solid var(--qiu-claro);
+  transition:transform .2s ease;
+}
+.qc-tour-fab:hover{ transform:scale(1.08); }
+.qc-tour-overlay{
+  position:fixed; inset:0; z-index:9999;
+  background:rgba(8,19,28,.6); backdrop-filter:blur(2px);
+  display:flex; align-items:flex-end; justify-content:center;
+  padding:16px;
+}
+@media(min-width:768px){ .qc-tour-overlay{ align-items:center; } }
+.qc-tour-overlay[hidden]{ display:none; }
+.qc-tour-card{
+  width:min(420px, 100%);
+  background:var(--superficie); color:var(--hueso);
+  border:1px solid var(--linea); border-radius:16px;
+  padding:20px 22px 18px; position:relative;
+  box-shadow:0 20px 50px rgba(0,0,0,.4);
+  font-family:var(--f-body);
+}
+.qc-tour-close{
+  position:absolute; top:10px; right:12px;
+  background:none;border:none;color:var(--hueso-2);
+  font-size:22px; line-height:1; cursor:pointer;
+}
+.qc-tour-step{
+  font-family:var(--f-data); font-size:12px; letter-spacing:.08em;
+  color:var(--qiu-claro); text-transform:uppercase; margin-bottom:6px;
+}
+.qc-tour-card h3{ font-family:var(--f-display); font-size:20px; margin:0 0 8px; color:var(--hueso); }
+.qc-tour-card p{ margin:0 0 16px; font-size:14.5px; line-height:1.5; color:var(--hueso-2); }
+.qc-tour-dots{ display:flex; gap:6px; margin-bottom:16px; }
+.qc-tour-dot{ width:7px;height:7px;border-radius:50%; background:var(--linea); }
+.qc-tour-dot.on{ background:var(--qiu-claro); }
+.qc-tour-actions{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+.qc-tour-nav{ display:flex; gap:8px; }
+.qc-tour-btn{ font-family:var(--f-body); font-size:14px; font-weight:600; padding:9px 16px; border-radius:999px; cursor:pointer; border:1px solid transparent; }
+.qc-tour-btn--solid{ background:var(--qiu); color:var(--hueso); }
+.qc-tour-btn--solid:hover{ background:var(--qiu-claro); }
+.qc-tour-btn--ghost{ background:transparent; color:var(--hueso-2); border-color:var(--linea); }
+.qc-tour-btn--ghost:hover{ color:var(--hueso); border-color:var(--hueso-2); }
+.qc-tour-btn:disabled{ opacity:.4; cursor:default; }
+.qc-tour-highlight{ outline:3px solid var(--tracer); outline-offset:4px; border-radius:8px; animation:qcTourPulse 1.6s ease-in-out infinite; }
+@keyframes qcTourPulse{ 0%,100%{ outline-color: var(--tracer); } 50%{ outline-color: var(--qiu-claro); } }
+@media (prefers-reduced-motion: reduce){ .qc-tour-highlight{ animation:none; } }
+@media (max-width:600px){ .qc-tour-fab{ left:14px; bottom:14px; width:42px;height:42px; font-size:18px; } }
 </style>
 </head>
 <body>
@@ -424,6 +479,26 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
     </a>
   </div>
 </header>
+
+
+<!-- ══════════ WALKTHROUGH DE BIENVENIDA ══════════ -->
+<div class="qc-tour-fab" id="qcTourFab" role="button" tabindex="0" aria-label="Ver recorrido guiado del catálogo">?</div>
+<div class="qc-tour-overlay" id="qcTourOverlay" hidden>
+  <div class="qc-tour-card" role="dialog" aria-modal="true" aria-labelledby="qcTourTitle">
+    <button class="qc-tour-close" id="qcTourClose" aria-label="Cerrar recorrido">×</button>
+    <div class="qc-tour-step" id="qcTourStep">1 / 7</div>
+    <h3 id="qcTourTitle"></h3>
+    <p id="qcTourText"></p>
+    <div class="qc-tour-dots" id="qcTourDots"></div>
+    <div class="qc-tour-actions">
+      <button id="qcTourSkip" class="qc-tour-btn qc-tour-btn--ghost" type="button">Saltar recorrido</button>
+      <div class="qc-tour-nav">
+        <button id="qcTourPrev" class="qc-tour-btn qc-tour-btn--ghost" type="button">Atrás</button>
+        <button id="qcTourNext" class="qc-tour-btn qc-tour-btn--solid" type="button">Siguiente</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- ══════════ RAIL / WALKTHROUGH ══════════ -->
 <aside class="rail" aria-label="Progreso del recorrido">
@@ -1236,6 +1311,78 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
   recalcular();
   initReveals();
   initRecorrido();
+})();
+</script>
+
+<script>
+(function(){
+  var STORAGE_KEY = 'qc_walkthrough_seen_v1';
+  var pasos = [
+    {id:'top', titulo:'¡Bienvenido a Qiu Commerce!', texto:'Este es un recorrido rápido por el catálogo. Usa "Siguiente" para avanzar o "Saltar recorrido" cuando quieras.'},
+    {id:'demanda', titulo:'50 m — La demanda', texto:'Los datos del sector que sustentan la inversión en equipamiento de driving range.'},
+    {id:'vacio', titulo:'100 m — El vacío', texto:'El problema que enfrenta la academia hoy, frente a lo que resuelve Qiu Commerce.'},
+    {id:'catalogo', titulo:'150 m — El catálogo', texto:'11 productos con precio sugerido y costo estimado, listos para cotizar.'},
+    {id:'calculadora', titulo:'200 m — Tu pedido', texto:'Ajusta las cantidades: el descuento por volumen se aplica solo y arma tu mensaje de WhatsApp.'},
+    {id:'fases', titulo:'250 m — Fases', texto:'El plan de implementación dividido en tres etapas.'},
+    {id:'cierre', titulo:'300 m — Cerrar', texto:'Datos de contacto y el botón final para confirmar tu pedido.'}
+  ];
+  var idx = 0;
+  function $(id){ return document.getElementById(id); }
+  var overlay = $('qcTourOverlay');
+  var fab = $('qcTourFab');
+  if(!overlay || !fab) return;
+
+  function pintar(){
+    var p = pasos[idx];
+    $('qcTourTitle').textContent = p.titulo;
+    $('qcTourText').textContent = p.texto;
+    $('qcTourStep').textContent = (idx+1) + ' / ' + pasos.length;
+    var dots = $('qcTourDots');
+    dots.innerHTML = '';
+    pasos.forEach(function(_, i){
+      var d = document.createElement('span');
+      d.className = 'qc-tour-dot' + (i===idx ? ' on' : '');
+      dots.appendChild(d);
+    });
+    $('qcTourPrev').disabled = idx === 0;
+    $('qcTourNext').textContent = idx === pasos.length - 1 ? 'Terminar' : 'Siguiente';
+
+    document.querySelectorAll('.qc-tour-highlight').forEach(function(n){ n.classList.remove('qc-tour-highlight'); });
+    var target = document.getElementById(p.id);
+    if(target){
+      target.classList.add('qc-tour-highlight');
+      var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      target.scrollIntoView({behavior: reduce ? 'auto' : 'smooth', block: idx===0 ? 'start' : 'center'});
+    }
+  }
+
+  function abrir(){ idx = 0; overlay.hidden = false; pintar(); }
+  function cerrar(){
+    overlay.hidden = true;
+    document.querySelectorAll('.qc-tour-highlight').forEach(function(n){ n.classList.remove('qc-tour-highlight'); });
+    try{ localStorage.setItem(STORAGE_KEY, '1'); }catch(e){}
+  }
+
+  $('qcTourNext').addEventListener('click', function(){
+    if(idx < pasos.length - 1){ idx++; pintar(); } else { cerrar(); }
+  });
+  $('qcTourPrev').addEventListener('click', function(){ if(idx>0){ idx--; pintar(); } });
+  $('qcTourSkip').addEventListener('click', cerrar);
+  $('qcTourClose').addEventListener('click', cerrar);
+  fab.addEventListener('click', abrir);
+  fab.addEventListener('keydown', function(e){ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); abrir(); } });
+  document.addEventListener('keydown', function(e){
+    if(overlay.hidden) return;
+    if(e.key === 'Escape') cerrar();
+    if(e.key === 'ArrowRight') $('qcTourNext').click();
+    if(e.key === 'ArrowLeft') $('qcTourPrev').click();
+  });
+
+  var yaVisto;
+  try{ yaVisto = localStorage.getItem(STORAGE_KEY); }catch(e){ yaVisto = '1'; }
+  if(!yaVisto){
+    window.addEventListener('load', function(){ setTimeout(abrir, 1200); });
+  }
 })();
 </script>
 </body>
